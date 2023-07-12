@@ -1,0 +1,114 @@
+########################################################################
+# Orchard
+#
+# A python script for running the Orchard algorithm.
+########################################################################
+import os, sys
+import numpy as np 
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", "input"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", "models"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", "result"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", "parallel"))
+
+from chain import run_chains_parallel
+from extract import extract_F_and_params
+from model_types import MODEL_DATA, MODEL_TYPES
+from PathData import PathData
+from parse_arguments import parse_arguments, process_args
+from results import results_to_npz
+from ResultsData import ResultsData
+from SetupData import SetupData 
+    
+
+def run_orchard(model_type,
+                model_data,
+                path_data,
+                setup_data):
+    """Python script for running Orchard. Runs Orchard and then packages the results in a numpy zipped archive (npz).
+    
+    Parameters
+    ----------
+    model_type : object
+        an instance of one of the model types defined in model_types.py (BeamSearch, StochasticBeamSearch)
+    model_data : dataclass
+        a dataclass containing all of the information needed to setup the model
+    path_data : dataclass
+        a dataclass containing all of the path information for the input/output files
+    setup_data : dataclass
+        a dataclass containing the information for how to parallelize the model
+
+    Returns
+    -------
+    None
+    """
+
+    # package mutation data for later use
+    F_data, params = extract_F_and_params(path_data.ssm_fn, path_data.params_fn)
+
+    # run a number of models (defined by n_chains) in parallel
+    best_trees, branches_explored, branches_cut = run_chains_parallel(model_type, model_data, F_data, setup_data)
+
+    # make sure that we've found at least one valid tree
+    if len(best_trees) == 0:
+        raise Exception("No trees found during search, please adjust the parameters or model accordingly.")
+
+    if model_data.debug:
+        for t_idx, t in enumerate(best_trees):
+            action_indices = [i for (i,_,_,_,_) in t.action_info()]
+            print("--------------------------------------")
+            print("----- Action Info For Tree %d --------" % t_idx)
+            print("Action index mean: %.3f" % np.mean(action_indices))
+            print("Action index median: %.3f" % np.median(action_indices))
+            print("Action index max: %.3f" % np.max(action_indices))
+            print("Action index min: %.3f" % np.min(action_indices))
+            print("Action index 25th percentile: %.3f" % np.percentile(action_indices, 25))
+            print("Action index 75th percentile: %.3f" % np.percentile(action_indices, 75))
+            print("--------------------------------------")
+
+    # write results from orchard to the results_fn npz file
+    results_to_npz(
+                        ResultsData(
+                            best_trees=best_trees,
+                            params=params, 
+                            branches_explored=branches_explored,
+                            branches_cut=branches_cut,
+                            seed=setup_data.seed,
+                            results_fn=path_data.results_fn
+                        ),
+                        F_data
+    )
+
+def main():
+
+    # parse arguments       
+    args = parse_arguments()
+
+    # process arguments
+    poolsize, n_chains, seed = process_args(args)
+
+    # printouts for debug mode
+    if args.debug:
+        print("Using %d cpu cores" % poolsize)
+        print("Seed is %d" % seed)
+
+    run_orchard(MODEL_TYPES[args.model],
+                MODEL_DATA[args.model]
+                        (beam_width=args.beam_width,
+                         branching_factor=args.branching_factor,
+                         debug=args.debug,
+                         ignore_zero_probs=args.ignore_zero_probs,
+                         expansion_factor=args.expansion_factor,
+                         force_monoprimary=args.force_monoprimary,
+                         max_placements=args.max_placements),
+                PathData(ssm_fn=args.ssm_fn,
+                         params_fn=args.params_fn,
+                         results_fn=args.results_fn),
+                SetupData(n_chains=n_chains, 
+                          poolsize=poolsize, 
+                          randomize_nodes=args.randomize_nodes,
+                          seed=seed))
+
+if __name__ == '__main__':
+    main()

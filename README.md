@@ -31,8 +31,12 @@ Setup conda environment with python 3.8 or higher
 ```
 conda create -y --name orchard python=3.10
 
+
 CONDA_ACTIVATE_ENV_VARS=$HOME/.conda/envs/orchard/etc/conda/activate.d/env_vars.sh
 CONDA_DEACTIVATE_ENV_VARS=$HOME/.conda/envs/orchard/etc/conda/deactivate.d/env_vars.sh
+
+mkdir -p $HOME/.conda/envs/orchard/etc/conda/activate.d
+mkdir -p $HOME/.conda/envs/orchard/etc/conda/deactivate.d
 
 touch $CONDA_ACTIVATE_ENV_VARS
 touch $CONDA_DEACTIVATE_ENV_VARS
@@ -61,7 +65,7 @@ source env/bin/activate
 Install dependencies
 
 ```
-pip3 install -r requirements.txt
+python -m pip install -r requirements.txt
 
 cd $ORCH_DIR/lib
 git clone https://github.com/ethanumn/projectppm
@@ -142,7 +146,7 @@ There are quite a few different parameters that Orchard has. We provide a brief 
     run as a single thread.
 - `-p`, `--force-monoprimary` : bool, default=False
     - flag to tell orchard to only search for trees that are monoprimary
-- `-r`, `--ranomize-nodes` : bool, default=False
+- `-r`, `--randomize-nodes` : bool, default=False
     - flag to tell orchard to run using a randomized node order
 - `-s`, `--seed` : int, default=None
     - seed value for duplicating orchard's results across multiple runs

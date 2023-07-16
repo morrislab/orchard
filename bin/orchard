@@ -12,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", "result"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "orchard", "parallel"))
 
-from chain import run_chains_parallel
+from instance import run_parallel_instances
 from extract import extract_F_and_params
 from model_types import MODEL_DATA, MODEL_TYPES
 from PathData import PathData
@@ -48,7 +48,7 @@ def run_orchard(model_type,
     F_data, params = extract_F_and_params(path_data.ssm_fn, path_data.params_fn)
 
     # run a number of models (defined by n_chains) in parallel
-    best_trees, branches_explored, branches_cut = run_chains_parallel(model_type, model_data, F_data, setup_data)
+    best_trees, branches_explored, branches_cut = run_parallel_instances(model_type, model_data, F_data, setup_data)
 
     # make sure that we've found at least one valid tree
     if len(best_trees) == 0:
@@ -86,7 +86,7 @@ def main():
     args = parse_arguments()
 
     # process arguments
-    poolsize, n_chains, seed = process_args(args)
+    poolsize, num_instances, seed = process_args(args)
 
     # printouts for debug mode
     if args.debug:
@@ -105,9 +105,9 @@ def main():
                 PathData(ssm_fn=args.ssm_fn,
                          params_fn=args.params_fn,
                          results_fn=args.results_fn),
-                SetupData(n_chains=n_chains, 
+                SetupData(num_instances=num_instances, 
                           poolsize=poolsize, 
-                          randomize_nodes=args.randomize_nodes,
+                          node_order=args.node_order,
                           seed=seed))
 
 if __name__ == '__main__':

@@ -8,9 +8,11 @@ import argparse, os, sys
 from multiprocessing import cpu_count
 import numpy as np
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "models"))
 
 from model_types import sbs, MODEL_TYPES
+from constants import F_SUM_NODE_ORDER, RANDOM_NODE_ORDER, DIVERSE_NODE_ORDER, node_order_options
 
 
 def parse_arguments():
@@ -28,6 +30,9 @@ def parse_arguments():
 
     parser.add_argument("results_fn", help="Zipped archive (.npz) file name to write results to.")
 
+    parser.add_argument("-d", "--debug", default=False, action="store_true",
+                         help="Flag for debug printouts.")      
+
     parser.add_argument("-e", "--expansion-factor", default=1, type=int,
                          help="Number of partial solutions to expand at each iteration of the Orchard algorithm. \
                                If the expansion_factor=1, this amounts to a best-first-search. If the \
@@ -37,17 +42,15 @@ def parse_arguments():
                          help="Branching factor controls the number of possible parents to consider when choosing an unparented mutation to add to the tree. \
                                The time complexity of Orchard scales linearly with the branching factor.")
 
-    parser.add_argument("-k", "--beam-width", type=int, default=1,
-                         help="Beam width is used to limit the number of trees sampled for each chain. \
-                              The time complexity of Orchard scales linearly with the beam width.")
-
-    parser.add_argument("-c", "--n-chains", type=int, default=None,
+    parser.add_argument("-i", "--num-instances", type=int, default=None,
                          help="Number of parallel instances of Orchard to run.")
 
-    parser.add_argument("-d", "--debug", default=False, action="store_true",
-                         help="Flag for debug printouts.")           
+    parser.add_argument("-k", "--beam-width", type=int, default=1,
+                         help="Beam width is used to limit the number of trees sampled for each chain. \
+                              The time complexity of Orchard scales linearly with the beam width.")     
 
-    parser.add_argument("-m", "--model", type=str, default=sbs, choices=list(MODEL_TYPES.keys()))
+    parser.add_argument("-m", "--model", type=str, default=sbs, choices=list(MODEL_TYPES.keys()),
+                         help="The type of model to run")
 
     parser.add_argument("-n", "--num-cpu-cores", default=cpu_count(), type=int,
                          help="Number of CPUs to use for processing candidate trees.")
@@ -55,11 +58,15 @@ def parse_arguments():
     parser.add_argument("-p", "--force-monoprimary", default=False, action="store_true",
                          help="Flag that when provided will force Orchard to only search for trees that are monoprimary.")
 
-    parser.add_argument("-r", "--randomize-nodes", default=False, action="store_true",
-                         help="Flag for whether or not to randomize the order of mutations when building trees.")
-
     parser.add_argument("-s", "--seed", type=int, default=None,
                          help="Seed for duplicating results.")
+
+    parser.add_argument("-w", "--node-order", type=str, default=F_SUM_NODE_ORDER, choices=node_order_options,
+                         help="Option for what order the nodes will be added to the tree in each parallel instance of Orchard. The '%s' will initialize the \
+                         node order for each parallel instance of Orchard by the sum of the data-implied cellular prevalence for each node in descending order (F sum node order). \
+                         The '%s' will initialize the node order for each parallel instance of Orchard randomly.  \
+                         The '%s' will initialize one of the parallel instances to have the F sum node order, and all of the remaining instances to have a randomized node order" \
+                          %(F_SUM_NODE_ORDER, RANDOM_NODE_ORDER, DIVERSE_NODE_ORDER))
 
     parser.add_argument("-x", "--max-placements", type=int, default=10,
                          help="If we are placing some node u as a direct descendant of a node v that is already in the tree \
@@ -95,12 +102,12 @@ def process_args(args):
     poolsize = min(max(1, args.num_cpu_cores), cpu_count())
 
     # determine number of chains to run
-    if args.n_chains is None:
-        args.n_chains = max(1, poolsize) 
+    if args.num_instances is None:
+        args.num_instances = max(1, poolsize) 
 
     # select random seed if it's not defined
     if args.seed is None:
         args.seed = np.random.randint(2**32)
     
-    return poolsize, args.n_chains, args.seed
+    return poolsize, args.num_instances, args.seed
  

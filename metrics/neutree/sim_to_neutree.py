@@ -198,12 +198,12 @@ def main():
 	F_ = np.array([pickle_data[KEYS_ORCH_NPZ.F_key] for _ in range(N)])
 	counts = np.ones(N)
 	ntree = neutree.Neutree(
-	structs = np.array(structs),
-	phis = F_,
-	counts = counts,
-	logscores = llhs,
-	clusterings = [pickle_data[KEYS_PARAMS.clusters_key] for idx in range(N)],
-	garbage = pickle_data[VIDS_GARBAGE],
+		structs = np.array(structs),
+		phis = F_,
+		counts = counts,
+		logscores = llhs,
+		clusterings = [pickle_data[KEYS_PARAMS.clusters_key] for idx in range(N)],
+		garbage = pickle_data[VIDS_GARBAGE],
 	)
 	neutree.save(ntree, args.neutree_fn)
 

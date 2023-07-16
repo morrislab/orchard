@@ -1,3 +1,9 @@
+###############################################################################################################
+# constants.py
+# 
+# Constants that are held inside of python dataclasses for convenience
+###############################################################################################################
+
 from dataclasses import dataclass
 
 ##############################
@@ -18,6 +24,7 @@ class KEYS_ORCH_NPZ:
   sampnames: str = "sampnames"
   seed: str = "seed"
   struct_key: str = "struct"
+  clusters_key: str = "clusters"
 
   # just for compatibility with pairtree  
   clustrel_posterior_rels: str = "clustrel_posterior_rels"
@@ -47,3 +54,12 @@ class KEYS_SSM:
 MAX_SEED = 2**32 - 1
 NO_RELATIONSHIP = -1
 MISSING_REL_PROB = 1e-14
+
+
+##############################
+# Initialization schemes
+##############################
+F_SUM_NODE_ORDER = "fsum"
+RANDOM_NODE_ORDER = "random"
+DIVERSE_NODE_ORDER = "diverse"
+node_order_options = (F_SUM_NODE_ORDER, RANDOM_NODE_ORDER, DIVERSE_NODE_ORDER)

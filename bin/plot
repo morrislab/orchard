@@ -1,0 +1,81 @@
+###############################################################################################################
+# plot
+# 
+# Basic plotting script to visualize a tree and its data using either a zipped archive generated 
+# using the omicsdata.npz.archive.Archive class or a Neutree file
+###############################################################################################################
+import sys, os, argparse 
+import numpy as np
+from omicsdata.ssm.parse import load_ssm
+from omicsdata.tree.parents import parents_to_adj
+from omicsdata.ssm.supervariants import clusters_to_supervars, make_superclusters
+from omicsdata.ssm.constants import Variants_Keys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "plot"))
+
+from utils import draw_tree, SP_fig, CP_fig, load_npz_data, create_panel_html, convert_fig_to_html, make_html_text
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Plotting utility for visualizing the trees output by Orchard",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("input_fn", type=str, 
+                        help="Path to either a zipped archive generated using the omicsdata.npz.archive.Archive class, or a Neutree file")
+    parser.add_argument("output_html", type=str, 
+                        help="File name to write the html file to with the tree and data visualizations")
+    parser.add_argument("-d", "--description", type=str, default="A description could go here.", 
+                        help="Description of the data/tree, could be a text string or a text file")   
+    parser.add_argument("-s","--ssm-fn", type=str, default="",
+                        help="Path to a simple somatic mutation file (.ssm).")
+    parser.add_argument("-p","--params-fn", type=str, default="",
+                        help="Path to a parameters file (.params.json).")
+    parser.add_argument("-i", "--tree-idx", type=int, default=0, 
+                        help="The index of tree to visualize from the input file (i.e., Archive or Neutree file)")
+ 
+    args = parser.parse_args()
+
+    # try loading data 
+    structs, Fs, clusters, samples, llhs = load_npz_data(args.input_fn, args.params_fn)
+
+    assert args.tree_idx < len(structs), "Tried to extract tree at index %d, but file only has %d trees" % (args.tree_idx, len(structs))
+
+    # grab data for the particular tree
+    parents = structs[args.tree_idx]
+    F = Fs[args.tree_idx]
+    n,m = F.shape
+    nllh = -llhs[args.tree_idx]/((n-1)*m*np.log(2))
+
+    F_hat = None
+    # grab ssm data if it's provided
+    if os.path.exists(args.ssm_fn):
+
+        # compute supervariants
+        variants = load_ssm(args.ssm_fn)
+        supervariants = clusters_to_supervars(clusters, variants)
+        superclusters = make_superclusters(supervariants)
+
+        # make the data-implied cellular prevalence matrix
+        F_hat = np.zeros_like(F)
+        F_hat[0, :] = 1.0
+        for i,s_id in enumerate(np.array(superclusters).flatten()):
+            supervariant = supervariants[s_id]
+            F_hat[i+1,:] = np.minimum(1,supervariant[Variants_Keys.VAF] / supervariant[Variants_Keys.OMEGA_V])
+
+    adj = parents_to_adj(parents)
+    np.fill_diagonal(adj, 0)
+
+    # generate the html of the tree
+    tree_html = draw_tree(adj, clusters)
+    fig1 = SP_fig(parents, F, samples)
+    fig2 = CP_fig(F, samples, clusters, F_hat=F_hat)
+    figures_html = [convert_fig_to_html(fig) for fig in [fig1, fig2]]
+    description_html = [make_html_text("%.2f" % nllh, title="Tree log-perplexity"), make_html_text(args.description)]
+    
+    output_html = create_panel_html(tree_html, description_html + figures_html)
+
+    with open(args.output_html, "w") as f:
+        f.write(output_html)
+
+if __name__ == '__main__':
+    main()

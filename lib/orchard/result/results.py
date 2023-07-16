@@ -17,7 +17,7 @@ from omicsdata.npz.archive import Archive
 
 def results_to_npz(results_data, F_data):
     """
-    Prepares the output of Orchard and uses the Archive class from gdata to write numpy zipped file (npz)
+    Prepares the output of Orchard and uses the Archive class from omicsdata to write numpy zipped file (npz)
 
     Parameters
     ----------
@@ -50,7 +50,7 @@ def results_to_npz(results_data, F_data):
         KEYS_ORCH_NPZ.action_info: [],
         KEYS_ORCH_NPZ.branches_explored: results_data.branches_explored,
         KEYS_ORCH_NPZ.branches_cut: results_data.branches_cut,
-        KEYS_PARAMS.clusters_key: results_data.params[KEYS_PARAMS.clusters_key],
+        KEYS_ORCH_NPZ.clusters_key: results_data.params[KEYS_PARAMS.clusters_key],
         KEYS_ORCH_NPZ.count_key: [],
         KEYS_ORCH_NPZ.llh_key: [],
         KEYS_ORCH_NPZ.F_key: [],

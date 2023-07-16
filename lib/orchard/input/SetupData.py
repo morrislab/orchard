@@ -11,7 +11,7 @@ import numpy as np
 @dataclass 
 class SetupData:
     """Class for storing setup parameters to run Orchard"""
-    n_chains: np.int16
+    num_instances: np.int16
     poolsize: np.int16 
-    randomize_nodes: bool
+    node_order: str
     seed: np.int32

@@ -5,3 +5,5 @@ scikit-learn
 scipy
 tqdm
 omicsdata
+matplotlib 
+pyvis

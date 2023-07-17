@@ -197,13 +197,13 @@ def CP_fig(F, samples, clusters, F_hat=None, color_palette=color_palette):
     else: # otherwise, we'll just show the tree-constrained cellular prevalence
         height = N
         data = F
-        ylabels = ["data"]*N
+        ylabels = ["tree"]*N
         plot_title="Cellular prevalence"
         for i in range(height):
             colors.append(color_palette[i%len(color_palette)])
             
     fig = plt.figure(figsize=(width,height))
-    gs = GridSpec(height,2, figure=fig)
+    gs = GridSpec(height,2, figure=fig, width_ratios=[1,min((M,10))])
     
     # add cellular prevalence subplots
     for i in range(height):
@@ -215,13 +215,19 @@ def CP_fig(F, samples, clusters, F_hat=None, color_palette=color_palette):
         ax.spines['left'].set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.set_ylabel(ylabels[i])
-        if i < len(clusters) - 1:
-            ax.set_xticks("")
         ax.set_ylim(0,105)
+        ax.margins(x=0, tight=True)
+
+        if i == 0:
+            ax.set_title(plot_title, pad=20, wrap=True)
+        if i < height - 1:
+            ax.set_xticks("")
+        else: 
+            ax.tick_params(axis='x', labelrotation = 90)
+
         for p in ax.patches:
             ax.annotate("%.1f%%" % p.get_height(), (p.get_x() + 0.2, p.get_height()+3))
-        if i == 0:
-            ax.set_title(plot_title, pad=20)
+
 
     # add cluster members subplots
     cluster_height = int(height / len(clusters))
@@ -235,12 +241,14 @@ def CP_fig(F, samples, clusters, F_hat=None, color_palette=color_palette):
 
         ax.spines['top'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
         ax.set_ylabel("Node %d" % i)
         ax.text(0.5,0.5,",".join(C),horizontalalignment='center', verticalalignment='center')
 
         # add horizontal lines between subplots
         trans = transforms.blended_transform_factory(fig.transFigure, ax.transAxes)
-        line = Line2D([0.025,1], [-.13, -.13], color='black', transform=trans, linewidth=1.0)
+        line = Line2D([0.025,.09], [0,0], color='black', transform=trans, linewidth=0.9)
         fig.lines.append(line)
 
     gs.tight_layout(fig)
@@ -280,7 +288,7 @@ def SP_fig(parents, F, samples, color_palette=color_palette, width=0.9):
         cl = color_palette[i%len(color_palette)]
         subpopfreq_dict["Node %d" % i] = (subpopfreq[i], cl)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(M,int(N/2)), layout="constrained")
     bottom = np.zeros(M)
 
     # plot each node's data
@@ -293,8 +301,10 @@ def SP_fig(parents, F, samples, color_palette=color_palette, width=0.9):
     ax.spines['right'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['top'].set_visible(False)   
-    ax.set_title("Subpopulation frequency in each sample")
-    ax.legend(bbox_to_anchor=(1.0, 1.0))
+    ax.tick_params(axis='x', labelrotation = 90)
+    ax.set_title("Subpopulation frequency in each sample", wrap=True)
+    ax.legend(bbox_to_anchor=(1, 1))
+    ax.margins(x=0, tight=True)
 
     # annotate the bar plot with its subpopulation frequency if it's large enough to fit
     for p in ax.patches:
@@ -303,10 +313,10 @@ def SP_fig(parents, F, samples, color_palette=color_palette, width=0.9):
         if height > 8:
             ax.text(x+width/2, 
                     y+height/2, 
-                    "%s \n %.1f%%" % (node, height), 
+                    "%.1f%%" % height, 
                     horizontalalignment='center', 
                     verticalalignment='center')
-    fig.tight_layout()
+    #fig.tight_layout()
     return fig
 
 def draw_tree(adj, clusters):
@@ -327,17 +337,18 @@ def draw_tree(adj, clusters):
     """
     net = Network(directed=True, layout=True)
 
+    # add nodes
+    net.add_node(0, label="0", font='30px arial black', title="root")
+
+    for i in range(1,adj.shape[0]):
+        i_title = str(",".join(clusters[i-1]))
+        net.add_node(i, label=str(i), font='30px arial black', title=i_title)
+
     # use the adjacency matrix to determine which nodes have edges between them
     for (i,j) in zip(*np.where(adj == 1)):
         i,j = int(i), int(j)
 
-        # hoverover title for each node
-        i_title = str(",".join(clusters[i-1])) if i > 0 else "root"
-        j_title = str(",".join(clusters[j-1]))
-
-        # add the nodes/edge
-        net.add_node(i, label=str(i), font='30px arial black', title=i_title)
-        net.add_node(j, label=str(j), font='30px arial black', title=j_title)
+        # add edge
         net.add_edge(i,j)
 
     return net.generate_html()

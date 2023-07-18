@@ -96,11 +96,11 @@ cd $ORCH_DIR/lib
 git clone https://github.com/ethanumn/mutsim.git
 ```
 
-Download simulated datasets from Pairtree paper (optional)
+Download repository to replicate the results from the Orchard manuscript 
 ```
 cd $ORCH_DIR
-git clone https://github.com/morrislab/pairtree-experiments.git
-$SH_DIR/reorganize_folder.sh $ORCH_DIR/pairtree-experiments/inputs/sims.smallalpha.pairtree
+git clone https://github.com/ethanumn/orchard_experiments.git
+cd $ORCH_DIR/orchard_experiments
 ```
 
 

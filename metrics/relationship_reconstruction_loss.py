@@ -127,10 +127,16 @@ def load_neutrees(neutree_fns):
 				truth_per_tensor = mutation_per_probs
 			else:
 				rrl_tuples.append((name, mutation_per_probs))
+		else:
+			rrl_tuples.append((name, MISSING))
 
 	assert isinstance(truth_per_tensor, np.ndarray), "Ground truth pairwise evolutionary relationships are not provided."
 	for (name, mutation_per_probs)	in rrl_tuples:
-		method_scores[name] = JSD(mutation_per_probs, truth_per_tensor)
+		if isinstance(mutation_per_probs, np.ndarray):
+			method_scores[name] = JSD(mutation_per_probs, truth_per_tensor)
+		else:
+			method_scores[name] = MISSING 
+
 	method_scores["truth"] = 0.0
 
 	return sorted(method_scores.keys()), [method_scores[k] for k in sorted(method_scores.keys())]

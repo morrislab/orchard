@@ -8,11 +8,12 @@ Table of Contents
 1. [Requirements](#requirements)
 2. [Installation](#installation)
 3. [Examples](#examples)
-4. [Orchard Parameters](#orchard-parameters)
-5. [Running Orchard](#running-orchard)
-6. [Orchard Inputs](#orchard-inputs)
-7. [Orchard Outputs](#orchard-outputs)
-8. [Phylogeny-aware clustering](#phylogeny-aware-clustering)
+4. [FAQ](#faq)
+5. [Orchard Parameters](#orchard-parameters)
+6. [Running Orchard](#running-orchard)
+7. [Orchard Inputs](#orchard-inputs)
+8. [Orchard Outputs](#orchard-outputs)
+9. [Phylogeny-aware clustering](#phylogeny-aware-clustering)
 
 
 
@@ -77,17 +78,11 @@ bash make.sh
 cd $ORCH_DIR
 ```
 
-Download Pairtree (optional)
-
+Download repository to replicate the results from the Orchard manuscript  (optional)
 ```
-cd $ORCH_DIR/lib
-git clone https://github.com/jwintersinger/pairtree && cd pairtree
-pip3 install -r requirements.txt
-cd lib
-git clone https://github.com/jwintersinger/projectppm
-cd projectppm
-bash make.sh
 cd $ORCH_DIR
+git clone https://github.com/ethanumn/orchard_experiments.git
+cd $ORCH_DIR/orchard_experiments
 ```
 
 Install libraries for simulating mutation trees (optional)
@@ -95,14 +90,6 @@ Install libraries for simulating mutation trees (optional)
 cd $ORCH_DIR/lib
 git clone https://github.com/ethanumn/mutsim.git
 ```
-
-Download repository to replicate the results from the Orchard manuscript 
-```
-cd $ORCH_DIR
-git clone https://github.com/ethanumn/orchard_experiments.git
-cd $ORCH_DIR/orchard_experiments
-```
-
 
 Examples
 ===========
@@ -299,6 +286,17 @@ s1	S_1	0,9,0	50,50,50	0.5,0.5,0.5
 s2	S_2	28,1,19	50,50,50	0.5,0.5,0.5
 ```
 
+Here are a few high level things to note about the SSM file format:
+
+- The SSM file is a *tab-separated* file
+- The `id` field must be unique for each entry, and an `id` must follow the following regular expression format `s\d+`
+- The `name` field can be any string, and does not need to be unique
+- The `var_reads`, `total_reads`, and `var_read_prob` fields must be comma separated strings, and must all have the same length
+- The values in the comma separated string for `var_reads`, `total_reads`, `var_read_prob` are ordered such that each index in the comma separated string is associated with a specific sample, and the values must appear in the same order that the `sample` names appear in the parameters file.
+- The values in the comma separated string for `var_reads` and `total_reads` must be non-negative integers
+- The values in the comma separated string for `var_read_prob` must be floats in the range (0,1]
+
+
 Parameters File
 -----------------
 
@@ -308,6 +306,12 @@ Here are the most relevant key/value pairs in the `example1` parameters file
 ```
 {"samples": ["Sample 1", "Sample 2", "Sample 3"], "clusters": [["s9"], ["s0"], ["s1"], ["s2"], ["s4"], ["s3"], ["s7"], ["s5"], ["s8"], ["s6"]]}
 ```
+
+Here are a few high level things to note about the parameters file format:
+
+- The parameters file is a structured object format similar to [Javascript Object Notation](https://en.wikipedia.org/wiki/JSON)
+- The values in the `samples` list must be unique strings
+- The values in the `clusters` list must be lists, where each sublist contains one or more `id` values defined in the corresponding SSM file
 
 Orchard Outputs
 =================
@@ -346,7 +350,7 @@ The archive output by Orchard contains `numpy` data types stored under specific 
 
 Phylogeny aware clustering
 ===========================
-The *phylogeny-aware clustering* method is an aggolmerative clustering algorithm that infer a clone tree from a clone/mutation tree. It can be used to find plausible mutation clusters after Orchard has been used to construct a clone/mutation tree on a dataset. 
+The *phylogeny-aware clustering* method is an aggolmerative clustering algorithm that infers a clone tree from a clone/mutation tree. It can also be used to find plausible mutation clusters after Orchard has been used to construct a clone/mutation tree on a dataset. 
 
 **When should I use phylogeny-aware clustering?**
 
@@ -366,3 +370,15 @@ The phylogeny-aware clustering algorithm joins pairs of nodes based on the dista
 
 The phylogeny-aware clustering algorithm outputs zipped archive using [omicsdata.npz.archive.Archive](https://omicsdata.readthedocs.io/en/latest/omicsdata.npz.html#omicsdata.npz.archive.Archive). This archive contains all of the clones trees of size *2,...,n+1* and their related data. By default, the name of the zipped archive will be *cluster.npz*.
 
+FAQ
+=======
+
+Here are some frequently asked questions/errors:
+
+### `AssertionError: var_reads for s0 is of length 1, but 3 expected'`
+
+The cause of this error is that mutation `s0` listed in the SSM file provided to Orchard does not have variant read counts listed for all 3 samples that were defined in the corresponding parameters file provided to Orchard. Orchard expects that there are values provided in `var_reads`, `total_reads`, and `var_read_prob` for all of the samples listed in the parameters file. If for whatever reason you have data missing for a sample, please see the [Pairtree STAR Method section on imputing read count data](https://www.sciencedirect.com/science/article/pii/S266616672200586X#sectitle0055).
+
+### `AssertionError: Could not find projectppm library.`
+
+The cause of this error is that the projectppm repository could not be found in its expected path. Please ensure that the [installation directions](#installation) have been followed properly.

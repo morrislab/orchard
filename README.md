@@ -133,6 +133,23 @@ python bin/plot $example1_dir/cluster/cluster.results.npz $example1_dir/cluster/
 open $example1_dir/cluster/cluster.plot.html 
 ```
 
+Compare the trees output by Orchard to a simulated ground truth
+```
+# make sure we've run Orchard on the example1 data prior to running this
+
+# convert simulated data .pickle file to .neutree.npz
+python3 $ORCH_DIR/metrics/neutree/sim_to_neutree.py $example1_dir/example1.truth.pickle $example1_dir/example.truth.neutree.npz
+
+# convert .orchard.npz to neutree.npz for comparison
+python3 $ORCH_DIR/metrics/neutree/convert_outputs.py $example1_dir/example1.orchard.npz $example1_dir/example1.orchard.neutree.npz
+
+# compute relationship reconstruction loss, and save it to text file
+$ORCH_DIR/metrics/relationship_reconstruction_loss.py truth=$example1_dir/truth.neutree.npz orchard=$example1_dir/example.orchard.neutree.npz > $example1_dir/relationship_reconstruction_loss.txt
+
+# compute the log perplexity, and save it to a text file
+$ORCH_DIR/metrics/perplexity.py truth=$example1_dir/truth.neutree.npz orchard=$example1_dir/example.orchard.neutree.npz  --ssm-fn /path/to/example.ssm > logperplexity.txt
+```
+
 Orchard Parameters
 ===================
 
@@ -375,10 +392,10 @@ FAQ
 
 Here are some frequently asked questions/errors:
 
-### `AssertionError: var_reads for s0 is of length 1, but 3 expected'`
-
-The cause of this error is that mutation `s0` listed in the SSM file provided to Orchard does not have variant read counts listed for all 3 samples that were defined in the corresponding parameters file provided to Orchard. Orchard expects that there are values provided in `var_reads`, `total_reads`, and `var_read_prob` for all of the samples listed in the parameters file. If for whatever reason you have data missing for a sample, please see the [Pairtree STAR Method section on imputing read count data](https://www.sciencedirect.com/science/article/pii/S266616672200586X#sectitle0055).
-
 ### `AssertionError: Could not find projectppm library.`
 
 The cause of this error is that the projectppm repository could not be found in its expected path. Please ensure that the [installation directions](#installation) have been followed properly.
+
+### `AssertionError: var_reads for s0 is of length 1, but 3 expected'`
+
+The cause of this error is that mutation `s0` listed in the SSM file provided to Orchard does not have variant read counts listed for all 3 samples that were defined in the corresponding parameters file provided to Orchard. Orchard expects that there are values provided in `var_reads`, `total_reads`, and `var_read_prob` for all of the samples listed in the parameters file. If for whatever reason you have data missing for a sample, please see the [Pairtree STAR Method section on imputing read count data](https://www.sciencedirect.com/science/article/pii/S266616672200586X#sectitle0055).

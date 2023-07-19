@@ -138,16 +138,16 @@ Compare the trees output by Orchard to a simulated ground truth
 # make sure we've run Orchard on the example1 data prior to running this
 
 # convert simulated data .pickle file to .neutree.npz
-python3 $ORCH_DIR/metrics/neutree/sim_to_neutree.py $example1_dir/example1.truth.pickle $example1_dir/example.truth.neutree.npz
+python3 $ORCH_DIR/metrics/neutree/sim_to_neutree.py $example1_dir/example1.truth.pickle $example1_dir/example1.truth.neutree.npz
 
 # convert .orchard.npz to neutree.npz for comparison
 python3 $ORCH_DIR/metrics/neutree/convert_outputs.py $example1_dir/example1.orchard.npz $example1_dir/example1.orchard.neutree.npz
 
 # compute relationship reconstruction loss, and save it to text file
-$ORCH_DIR/metrics/relationship_reconstruction_loss.py truth=$example1_dir/truth.neutree.npz orchard=$example1_dir/example.orchard.neutree.npz > $example1_dir/relationship_reconstruction_loss.txt
+python3 $ORCH_DIR/metrics/relationship_reconstruction_loss.py truth=$example1_dir/example1.truth.neutree.npz orchard=$example1_dir/example1.orchard.neutree.npz > $example1_dir/relationship_reconstruction_loss.txt
 
 # compute the log perplexity, and save it to a text file
-$ORCH_DIR/metrics/perplexity.py truth=$example1_dir/truth.neutree.npz orchard=$example1_dir/example.orchard.neutree.npz  --ssm-fn /path/to/example.ssm > logperplexity.txt
+python3 $ORCH_DIR/metrics/perplexity.py truth=$example1_dir/example1.truth.neutree.npz orchard=$example1_dir/example1.orchard.neutree.npz  --ssm-fn $example1_dir/example1.ssm > $example1_dir/logperplexity.txt
 ```
 
 Orchard Parameters

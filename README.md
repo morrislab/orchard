@@ -367,7 +367,7 @@ The archive output by Orchard contains `numpy` data types stored under specific 
 
 Phylogeny aware clustering
 ===========================
-The *phylogeny-aware clustering* method is an aggolmerative clustering algorithm that infers a clone tree from a clone/mutation tree. It can also be used to find plausible mutation clusters after Orchard has been used to construct a clone/mutation tree on a dataset. 
+The *phylogeny-aware clustering* method is an agglomerative clustering algorithm that infers a clone tree from a clone/mutation tree. It can also be used to find plausible mutation clusters after Orchard has been used to construct a clone/mutation tree on a dataset. 
 
 **When should I use phylogeny-aware clustering?**
 

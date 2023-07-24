@@ -372,7 +372,7 @@ The *phylogeny-aware clustering* method is an agglomerative clustering algorithm
 **When should I use phylogeny-aware clustering?**
 
 1. You do not think other mutation clustering algorithms are constructing realistic clusters
-2. You have a priori knowledge about the number of mutation clusters in a cancer
+2. You have prior knowledge about the number of mutation clusters in a cancer
 3. You want to analyze a cancer's data using clones trees with varying numbers of clusters
 
 **What are the most important parameters for phylogeny-aware clustering?**

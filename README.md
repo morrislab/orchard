@@ -204,7 +204,7 @@ Running Orchard
 
 - The *node order* (`-w`, `--node-order`) is used to control the order in which nodes are added to the tree during Orchard's sampling routine. We recommend using the *F sum node order* (`-w=fsum`) which orders the nodes in descending order according to the sum of the nodes data-implied cellular prevalences across all samples. If multiple CPU cores are provided to Orchard, it can also be interesting to use a *diverse node ordering* (`-w=diverse`) which initializes one instance of Orchard's sampling routine with the *F sum node order* and then randomizes the node order for all remaining parallel instances of Orchard.
 
-**What is the estimate run time of Orchard?**
+**What is the estimated run time of Orchard?**
 
 There are many possible parameter setups for Orchard. We provide here a table of parameter ranges with their estimates run times. Please not that there are other parameters that can modify the expected run times.
 

@@ -192,7 +192,7 @@ def CP_fig(F, samples, clusters, F_hat=None, color_palette=color_palette):
             colors.append(color_palette[i%len(color_palette)])
             colors.append("black")
         ylabels = ["data", "tree", "error"]*N
-        plot_title="Interleaved cellular prevalence \n(Total Error = %.1f)" % np.abs(F-F_hat).sum()
+        plot_title="Interleaved cellular prevalence \n(Total Error = %.2f)" % np.abs(F-F_hat).sum()
 
     else: # otherwise, we'll just show the tree-constrained cellular prevalence
         height = N

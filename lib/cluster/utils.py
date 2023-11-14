@@ -53,7 +53,7 @@ class PD_Dict:
         """Gets a value based on two keys v1, v2"""
         return self.__dict.get(join_sort((v1,v2)))
 
-def cluster_llh(variants, cluster):
+def cluster_llh(variants, cluster, F):
     """Computes the binomial likelihood a single cluster
     
     Parameters
@@ -64,15 +64,18 @@ def cluster_llh(variants, cluster):
     cluster : list
         a list of lists where each sublist is a particular cluster containing a set of unique 'id' values denoting
         the mutations in that cluster
+    F : ndarray
+        a matrix of mutation frequencies for the mutations in the cluster
 
     Returns
     ---------
     float
         the log-likelihood of all of the clusters under a binomial likelihood model
     """
-    V_hat, N_hat, _, = prep_cluster_data(variants, cluster)
-    P_c = compute_P(np.sum(V_hat, axis=0), np.sum(N_hat, axis=0))
-    return np.sum(binom.logpmf(V_hat, N_hat, P_c))
+    V_hat, N_hat, omega_v, F_cluster = prep_cluster_data(variants, cluster, F)
+    variances = compute_variances(V_hat, N_hat, omega_v)
+    P_c = 0.5*np.sum(F_cluster/variances, axis=0)/np.sum(1/variances, axis=0) # variance weighted average
+    return binom.logpmf(V_hat, N_hat, P_c).sum()
 
 def min_linkage(pairs_dict, c1, c2):
     """A function to compute the minimum linkage criterion
@@ -110,28 +113,7 @@ def avg_linkage(pairs_dict, c1, c2):
     float
         the average unweighted distance all pairs of mutations (i,j) where i \in c1, j \in c2 
     """
-    return np.sum([pd_dict.get(v1,v2) for v1 in c1 for v2 in c2]) / (len(c1)*len(c2))
-
-def compute_P(V, N, epsilon=1e-5):
-    """Computes an MLE binomial success probability given V successes of N trials
-    
-    V : ndarray
-        a 2D numpy array where each row is the variant read counts for a particular mutation/cluster
-    N : ndarray
-        a 2D numpy array where each row is the total read counts for a particular mutation
-    epsilon : float, optional
-        a minimum cellular prevalence that a mutation can have. This is used to prevent computing log(0))
-
-    Returns
-    --------
-    ndarray
-        a (1D or 2D) numpy array of data-implied cellular prevelance for each mutation
-    """
-    P = np.divide(V, N)
-    P = np.minimum(1 - epsilon, np.maximum(epsilon, P))
-    if not isinstance(P, np.ndarray):
-        P = np.array([P])
-    return P
+    return np.sum([pairs_dict.get(v1,v2) for v1 in c1 for v2 in c2]) / (len(c1)*len(c2))
 
 def load_inputs(input_fn):
     """
@@ -225,7 +207,7 @@ def select_clustering(clusterings, llhs, criterion, num_nodes, num_samples, plot
 
     return best_clustering[0] 
 
-def prep_cluster_data(variants, cluster):
+def prep_cluster_data(variants, cluster, F, eps=1e-4):
     """Prepares a cluster's data for computing the binomial likelihood by adjusting their read counts using the 
     variant read probability (similar to a supervariant approximation)
     
@@ -237,6 +219,10 @@ def prep_cluster_data(variants, cluster):
     cluster : list
         a list of lists where each sublist is a particular cluster containing a set of unique 'id' values denoting
         the mutations in that cluster
+    F : ndarray
+        a matrix of mutation frequencies for all mutations
+    eps : float
+        the minimum value (and 1-eps is maximum) for entries in the mutation frequency matrix
 
     Returns
     --------
@@ -246,6 +232,8 @@ def prep_cluster_data(variants, cluster):
         a (1D or 2D) numpy array of the adjusted total read counts for each mutation
     ndarray
         a (1D or 2D) numpy array of the updated variant read probability for each mutation
+    ndarray
+        a (1D or 2D) numpy array of the mutation frequencies for each mutation
     """
     # extract the data for all mutations in each cluster
     cluster_variants = [variants[vid] for vid in cluster]
@@ -257,7 +245,26 @@ def prep_cluster_data(variants, cluster):
     
     N_hat = 2*N*omega_v 
     V_hat = np.minimum(V, N_hat)
-    omega_hat = 0.5*np.ones(len(N_hat))
+    omega_hat = 0.5*np.ones(N_hat.shape)
+    F_cluster = np.minimum(np.maximum(np.array([F[int(vid[1:])-1] for vid in cluster]), eps), 1-eps)
     
-    return V_hat + 1, N_hat + 2, omega_hat
+    return V_hat + 1, N_hat + 2, omega_hat, F_cluster
 
+def compute_variances(V, N, omega, eps=1e-4):
+    """Computes scaled variances for binomial random variable (assumes Gaussian approximation to binomial)
+    
+    Parameters
+    ----------
+    N : ndarray
+        a (1D or 2D) numpy array of total read counts for each mutation in each sample
+    VAF : ndarray
+        a (1D or 2D) numpy array of variant allele frequencies for each mutation in each sample
+    eps : float
+        the minimum value for the variance
+    Returns
+    --------
+    ndarray
+        a (1D or 2D) numpy array of scaled variances
+    """
+
+    return np.maximum(eps,V*(1 - V/N) / (N*omega)**2)

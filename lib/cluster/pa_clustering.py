@@ -91,7 +91,7 @@ def _join(parents, Q, clusters):
 
     return parents, Q, clusters
 
-def cluster(supervars, parents, pd_matrix, cluster_ids, original_clusters, linkage_func):
+def cluster(supervars, parents, pd_matrix, cluster_ids, original_clusters, F, linkage_func):
     """Main function for performing agglomerative clustering
     
     Parameters
@@ -133,7 +133,7 @@ def cluster(supervars, parents, pd_matrix, cluster_ids, original_clusters, linka
     
     # initialize variables
     clusters = [set({vid}) for vid in cluster_ids]
-    llhs_ = [np.sum(cluster_llh(supervars, c) for c in clusters)]
+    llhs_ = [np.sum(cluster_llh(supervars, c, F) for c in clusters)]
     clusters_ = [[list(c) for c in clusters]]
     Q_list = []
     parents_ = [deepcopy(parents)]
@@ -146,7 +146,7 @@ def cluster(supervars, parents, pd_matrix, cluster_ids, original_clusters, linka
             parents, Q, clusters = _join(parents, Q, clusters)
 
             # compute metrics for clustering and save data
-            llh = np.sum(cluster_llh(supervars, c) for c in clusters if len(c) > 0)
+            llh = np.sum(cluster_llh(supervars, c, F) for c in clusters if len(c) > 0)
             Q_list.append(deepcopy(Q))
             parents_.append(deepcopy(parents))
             llhs_.append(llh)

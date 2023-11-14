@@ -62,8 +62,7 @@ def main():
 
     structs, Fs = load_inputs(args.input_fn)
     assert args.tree_idx < len(structs), "File contains %d trees, but a tree_idx of %d was provided" % (len(structs), args.tree_idx)
-    parents, F = structs[args.tree_idx], Fs[args.tree_idx]
-
+    parents, F = structs[args.tree_idx], Fs[args.tree_idx][1:] # take off first row which should be all 1.0's
     supervars = supervariants.clusters_to_supervars(params[KEYS_ORCH_NPZ.clusters_key], variants)
     superclusters = supervariants.make_superclusters(supervars)
     cluster_ids = [sv[0] for sv in superclusters]
@@ -80,6 +79,7 @@ def main():
                                             pd_matrix, 
                                             cluster_ids,
                                             params[KEYS_ORCH_NPZ.clusters_key],
+                                            F,
                                             linkage_func=linkage_criterion[args.linkage_criterion])
 
     # place results in dictionary

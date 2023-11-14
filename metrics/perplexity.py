@@ -99,7 +99,8 @@ def compute_logprobs(variants, F_matrices, llhs, clusterings, counts, eps=1e-5):
 		where the values are the log of the binomial likelihood of that cellular prevalence given the 
 		read count data for that mutation/sample  
 	"""
-	weights = softmax(llhs + np.log(counts))
+	weights = softmax(llhs)
+
 	N = len([vid for C in clusterings[0] for vid in C])
 	M = F_matrices[0].shape[1]
 
@@ -123,7 +124,7 @@ def compute_logprobs(variants, F_matrices, llhs, clusterings, counts, eps=1e-5):
 		T = np.array([variants[vid]["total_reads"] for vid in vids])
 		omega_v = np.array([variants[vid]["omega_v"] for vid in vids])
 		P = np.minimum(1-eps, np.maximum(eps, np.multiply(omega_v,F_mutations)))
-		logprobs += (w * binom.logpmf(V, T,P))
+		logprobs += (w * binom.logpmf(V, T, P))
 		
 	return logprobs
 

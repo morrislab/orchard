@@ -109,7 +109,6 @@ fi
 ##############################
 # (1) Run Orchard
 ##############################
-
 for dir in $data_dir/* ; 
 do
     
@@ -138,8 +137,6 @@ done
 ##############################
 # (2) Convert Outputs
 ##############################
-
-# initalize /path/to/pairtree/comparison
 for dir in $data_dir/* ; 
 do
     

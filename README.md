@@ -1,7 +1,18 @@
 Orchard
 ========
 
-Orchard uses bulk DNA sequencing data to quickly infer accurate cancer phylogenies.
+Orchard uses bulk DNA sequencing data to quickly infer accurate cancer phylogenies. The preprint for Orchard can be found here: [https://arxiv.org/abs/2311.12917](https://arxiv.org/abs/2311.12917). 
+
+If you use Orchard, please use the following citation:
+
+```
+@article{kulman2023orchard,
+  title={Orchard: building large cancer phylogenies using stochastic combinatorial search},
+  author={Kulman, Ethan and Kuang, Rui and Morris, Quaid},
+  journal={arXiv preprint arXiv:2311.12917},
+  year={2023}
+}
+```
 
 Table of Contents
 =================

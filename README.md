@@ -161,6 +161,11 @@ python3 $ORCH_DIR/metrics/relationship_reconstruction_loss.py truth=$example1_di
 python3 $ORCH_DIR/metrics/perplexity.py truth=$example1_dir/example1.truth.neutree.npz orchard=$example1_dir/example1.orchard.neutree.npz  --ssm-fn $example1_dir/example1.ssm > $example1_dir/logperplexity.txt
 ```
 
+Run Pairtree's plottree visualization tool using Orchard's output (requires installing Pairtree and its requirements)
+```
+python3 path/to/pairtree/bin/plottree examples/example1/example1.ssm examples/example1/example1.params.json examples/example1/example1.orchard.npz examples/example1/example1.plottree.html --omit-plots pairwise_mle,pairwise_separate
+```
+
 Orchard Parameters
 ===================
 

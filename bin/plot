@@ -66,7 +66,7 @@ def main():
     np.fill_diagonal(adj, 0)
 
     # generate the html of the tree
-    tree_html = draw_tree(adj, clusters)
+    tree_html = draw_tree(adj, variants, clusters)
     fig1 = SP_fig(parents, F, samples)
     fig2 = CP_fig(F, samples, clusters, F_hat=F_hat)
     figures_html = [convert_fig_to_html(fig) for fig in [fig1, fig2]]

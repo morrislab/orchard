@@ -58,6 +58,11 @@ def parse_arguments():
     parser.add_argument("-p", "--force-monoprimary", default=False, action="store_true",
                          help="Flag that when provided will force Orchard to only search for trees that are monoprimary.")
 
+    parser.add_argument("-r", "--rescale-depth", default=False, action="store_true",
+                         help="Rescales the read depth for each sample using the average read depth across the sample. This should be done if the \
+                               data has variable coverage in one or more samples. This should not be done if you believe the low coverage for some samples \
+                               is due to errors in sequencing.")
+
     parser.add_argument("-s", "--seed", type=int, default=None,
                          help="Seed for duplicating results.")
 

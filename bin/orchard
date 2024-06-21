@@ -45,7 +45,7 @@ def run_orchard(model_type,
     """
 
     # package mutation data for later use
-    F_data, params = extract_F_and_params(path_data.ssm_fn, path_data.params_fn)
+    F_data, params = extract_F_and_params(path_data.ssm_fn, path_data.params_fn, setup_data.rescale_depth)
 
     # run a number of models (defined by n_chains) in parallel
     best_trees, branches_explored, branches_cut = run_parallel_instances(model_type, model_data, F_data, setup_data)
@@ -59,6 +59,7 @@ def run_orchard(model_type,
             action_indices = [i for (i,_,_,_,_) in t.action_info()]
             print("--------------------------------------")
             print("----- Action Info For Tree %d --------" % t_idx)
+
             print("Action index mean: %.3f" % np.mean(action_indices))
             print("Action index median: %.3f" % np.median(action_indices))
             print("Action index max: %.3f" % np.max(action_indices))
@@ -108,7 +109,8 @@ def main():
                 SetupData(num_instances=num_instances, 
                           poolsize=poolsize, 
                           node_order=args.node_order,
-                          seed=seed))
+                          seed=seed,
+                          rescale_depth=args.rescale_depth))
 
 if __name__ == '__main__':
     main()

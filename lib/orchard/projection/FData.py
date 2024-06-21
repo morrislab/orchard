@@ -14,5 +14,6 @@ class FData:
     V: list
     N: list 
     omega: list
-
+    W: list
+    
     supervars: dict = field(default_factory=dict)

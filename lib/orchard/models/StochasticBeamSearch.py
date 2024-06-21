@@ -31,7 +31,7 @@ class StochasticBeamSearch(BeamSearch):
             the number of branches that are not being explored (i.e., the number of branches discarded)
         """
         return sample_branches_sbs(branch, 
-                                   self._phi_data,
+                                   self._F_data,
                                    self._model_data,
                                    self._generator)
 

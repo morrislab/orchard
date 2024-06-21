@@ -14,7 +14,9 @@ import ctypes
 from omicsdata.tree.parents import parents_to_adj
 from omicsdata.tree.adj import adj_to_anc
 
-MIN_VARIANCE = 1e-4
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from constants import MIN_VARIANCE
 
 def _adj_to_adjppm(adj):
     """Convert an adjacency matrix to a format projectppm is expecting
@@ -41,7 +43,7 @@ def _adj_to_adjppm(adj):
         adjppm[i, :len(row)] = row
     return adjppm, degrees
 
-def fit_F(parents, V, R, omega):
+def fit_F(parents, V, R, omega, W):
     """Uses the projection algorithm to compute the F matrix
     
     Parameters
@@ -61,7 +63,8 @@ def fit_F(parents, V, R, omega):
         a 2D array of variant read probabilities across all samples for each node. Each row i, V_i, are the 
         variant read probabilities for the node at index i in the parents array, and each column
         s, V_{is}, are the variant read probabilities for node i in sample s.
-
+    W : ndarray
+        a 2D array of weights used to account for variance in sequencing coverage 
     Returns
     -------
     ndarray
@@ -71,7 +74,7 @@ def fit_F(parents, V, R, omega):
     float
         the log binomial likelihood of the cellular prevalence matrix given the read count data
     """
-    F, eta = _fit_F(parents, V, R, omega)
+    F, eta = _fit_F(parents, V, R, omega, W)
     F_llh, _, _ = calc_llh(F, V, V + R, omega)
     return F, eta, np.sum(F_llh)
 
@@ -82,7 +85,7 @@ def calc_llh(F, V, N, omega_v, epsilon=1e-5):
     Parameters
     ----------
     F : ndarray
-        the cellular prevalence matrix F fit to the (partial) tree
+        the mutation frequency matrix F fit to the (partial) tree
     V : ndarray
         a 2D array of variant read counts across all samples for each node. Each row i, V_i, are the 
         variant read counts for the node at index i in the parents array, and each column
@@ -116,7 +119,7 @@ def calc_llh(F, V, N, omega_v, epsilon=1e-5):
     P = np.maximum(P, epsilon)
     P = np.minimum(P, 1 - epsilon)
 
-    F_llh = binom.logpmf(V, N, P) / np.log(2)
+    F_llh = binom.logpmf(V, N, P) 
     assert not np.any(np.isnan(F_llh)) and not np.any(np.isinf(F_llh)), \
            "F log-likelihood is incorrect. Please check inputs to calc_llh."
 
@@ -124,7 +127,7 @@ def calc_llh(F, V, N, omega_v, epsilon=1e-5):
     nlglh = np.sum(llh_per_sample) / S
     return (F_llh, llh_per_sample, nlglh)
 
-def _fit_F(parents, V, R, omega):
+def _fit_F(parents, V, R, omega, W):
     """Fits the cellular prevalence matrix F matrix one sample at a time
     
     Parameters
@@ -144,7 +147,9 @@ def _fit_F(parents, V, R, omega):
         a 2D array of variant read probabilities across all samples for each node. Each row i, V_i, are the 
         variant read probabilities for the node at index i in the parents array, and each column
         s, V_{is}, are the variant read probabilities for node i in sample s.
-
+    W : ndarray
+        a 2D array of weights used to account for variance in sequencing coverage 
+        
     Returns
     -------
     ndarray
@@ -166,17 +171,18 @@ def _fit_F(parents, V, R, omega):
     F_hat = np.minimum(1, F_hat)
     F_hat = np.insert(F_hat, 0, 1, axis=0)
 
-    # see pairtree source for more information
     V_hat = V + 1
-    T_hat = T + 2
-    var_F_hat = V_hat*(1 - V_hat/T_hat) / (T_hat*omega)**2
-    var_F_hat = np.insert(var_F_hat, 0, MIN_VARIANCE, axis=0)
-    var_F_hat = np.maximum(MIN_VARIANCE, var_F_hat)
+    T_hat = V + R + 2
+    W = V_hat*(1 - V_hat/T_hat) / (T_hat*omega)**2
+    W = np.maximum(MIN_VARIANCE, W)
+    W = np.insert(W, 0, MIN_VARIANCE, axis=0)
+
+    # initialize eta 
     eta = np.zeros((M+1, S))
 
     # fit eta for each sample
     for sidx in range(S):
-        eta[:,sidx] = _fit_eta_S(adj, F_hat[:,sidx], var_F_hat[:,sidx])
+        eta[:,sidx] = _fit_eta_S(adj, F_hat[:,sidx], W[:,sidx])
     
     # perform checks
     assert not np.any(np.isnan(eta)), "eta contains np.nans"

@@ -26,9 +26,9 @@ def max_log_sum(x, min_value=EPSILON):
     Parameters
     -----------
     x : ndarray
-        vector of cellular prevalences 
+        vector of mutation frequencies 
     min_value : float
-        the minimum value to have as a cellular prevalence
+        the minimum value to have as a mutation frequency
 
     Returns
     -------
@@ -65,21 +65,21 @@ def find_valid_samples(V1_var_reads, V1_omega, V2_var_reads, V2_omega):
     return u_parents_v_samples, valid_samples
 
 def compute_F_sum(nodes, node_to_index, F_t):
-    """Computes a sum over the values in the cellular prevalence matrix (F) for one or more nodes
+    """Computes a sum over the values in the mutation frequency matrix (F) for one or more nodes
     
     Parameters
     ----------
     nodes : list
         a list of nodes
     node_to_index : dictionary
-        a dictionary that maps a node to its index in the cellular prevalence matrix (F)
+        a dictionary that maps a node to its index in the mutation frequency matrix (F)
     F_t : ndarray
-        the cellular prevalence matrix (F) fit only to the nodes in the (partial) tree
+        the mutation frequency matrix (F) fit only to the nodes in the (partial) tree
 
     Returns
     -------
     ndarray
-        an array that contains the sum of the cellular prevalences in each sample for all of the nodes from the input
+        an array that contains the sum of the mutation frequencies in each sample for all of the nodes from the input
     """
     F_t_hat = np.sum([F_t[node_to_index[v]] for v in nodes], axis=0)
     return F_t_hat
@@ -90,7 +90,7 @@ def wald_interval(p, n, z=2.576):
     Parameters
     ----------
     p : ndarray
-        an array of data implied cellular prevalences in each sample for a node
+        an array of data implied mutation frequencies in each sample for a node
     n : ndarray
         an array of total read counts in each sample for a node
     z : float
@@ -99,11 +99,11 @@ def wald_interval(p, n, z=2.576):
     Returns
     -------
     ndarray
-        the lower limit of the confidence interval for the cellular prevalence in each sample
+        the lower limit of the confidence interval for the mutation frequency in each sample
     ndarray
-        the upper limit of the confidence interval for the cellular prevalence in each sample
+        the upper limit of the confidence interval for the mutation frequency in each sample
     """
-    q = z*np.sqrt(np.maximum(EPSILON, (p*(1-p))/n))
+    q = z*np.sqrt(np.maximum(EPSILON, np.divide(p*(1-p),n,where=n>0)))
     return np.maximum(EPSILON, p-q), np.minimum(1-EPSILON, p+q)
 
 def wilson_ci(p, n, z=2.576):
@@ -112,7 +112,7 @@ def wilson_ci(p, n, z=2.576):
     Parameters
     ----------
     p : ndarray
-        an array of data implied cellular prevalences in each sample for a node
+        an array of data implied mutation frequencies in each sample for a node
     n : ndarray
         an array of total read counts in each sample for a node
     z : float
@@ -121,9 +121,9 @@ def wilson_ci(p, n, z=2.576):
     Returns
     -------
     ndarray
-        the lower limit of the confidence interval for the cellular prevalence in each sample
+        the lower limit of the confidence interval for the mutation frequency in each sample
     ndarray
-        the upper limit of the confidence interval for the cellular prevalence in each sample
+        the upper limit of the confidence interval for the mutation frequency in each sample
     """
     q = (z/(1+(z**2/n)))*np.sqrt(((p*(1-p))/n) + (z**2/(4*n**2)))
     p_alt = (1/(1+(z**2/n)))*(p+(z**2/(2*n)))
@@ -136,20 +136,20 @@ def compute_betainc(F_data, u, v, x=np.array([]), confidence_adjustment=None):
     ----------
     F_data : dataclass
         an instance of the FData dataclass containing all of the read count and supervariant information
-        needed to compute the cellular prevalence matrix F
+        needed to compute the mutation frequency matrix F
     u : int
         the node value (its index is u-1) for the node being placed into the tree
     v : int
-        the node(s) that are used to define the cellular prevalence values that u must fall below in each sample
+        the node(s) that are used to define the mutation frequency values that u must fall below in each sample
     x : ndarray, optional
-        the cellular prevalence values that u must fall under
+        the mutation frequency values that u must fall under
     confidence_adjustment : str, optional
         which confidence interval to use when compute the incomplete beta function
 
     Returns
     -------
     ndarray
-        an array of probabilities for the cellular prevalence of u falling below the cellular prevalence of v in each sample
+        an array of probabilities for the mutation frequency of u falling below the mutation frequency of v in each sample
     """
     # b_u: variant read counts for u, T_u: total read counts for u, o_u: variant reads probability of u
     b_u, T_u, o_u = F_data.V[u-1], F_data.N[u-1], F_data.omega[u-1] 
@@ -164,7 +164,7 @@ def compute_betainc(F_data, u, v, x=np.array([]), confidence_adjustment=None):
         T_v = T_v.astype(int)
         b_v = np.minimum(b_v, T_v).astype(int)
         o_v = np.full(len(b_v), 0.5)
-        v_F_hat = np.minimum(1, b_v / (T_v*o_v))
+        v_F_hat = np.maximum(EPSILON,np.minimum(1, np.divide(b_v, T_v*o_v, where=T_v*o_v>0)))
     elif v == 0: # create dummy values if v=0
         b_v, o_v = np.full(len(b_u), MIN_VAR_READS+1), np.full(len(b_u), MIN_OMEGA)
         v_F_hat = np.full(len(b_u), 1 - EPSILON)
@@ -216,9 +216,9 @@ class Actions_Sampler:
     __node_order : list
         the order in which the nodes will be placed into the tree 
     __node_weights : list 
-        the sum of the cellular prevalences for each node across all samples (used to compute the F sum node order)
+        the sum of the mutation frequencies for each node across all samples (used to compute the F sum node order)
     __ignore_zero_probs : bool
-        a flag that prevents the fitting the cellular prevalence matrix and scoring partial trees for placements of node u
+        a flag that prevents the fitting the mutation frequency matrix and scoring partial trees for placements of node u
         that have a probability of zero computed by the node placement function
     __force_monoprimary : bool
         a flag that when true the Action_Sampler does not consider node placements that would result in a poly-primary tree
@@ -253,7 +253,7 @@ class Actions_Sampler:
         self.__node_weights = []
         for u in range(self.__num_nodes):
             # compute the data-implied VAFs, and sum those as the weights
-            u_F_hat = F_data.V[u] / (F_data.N[u] * F_data.omega[u])   
+            u_F_hat = np.divide(F_data.V[u], (F_data.N[u] * F_data.omega[u]),where=(F_data.N[u] * F_data.omega[u])>0)
             self.__node_weights.append(np.sum(u_F_hat))
 
     def _sample_node_order(self, generator, randomize=False):
@@ -275,7 +275,7 @@ class Actions_Sampler:
 
     def copy(self):
         """Returns a copy of the Action_Sampler object"""
-        A = Actions_Sampler(num_nodes = self.__num_nodes, 
+        A = Actions_Sampler(num_nodes=self.__num_nodes, 
                             num_samples=self.__num_samples,
                             current_node_idx=self.__current_node_idx, 
                             max_placements=self.__max_placements,
@@ -295,13 +295,13 @@ class Actions_Sampler:
             that nodes direct ancestor (parent) in the tree
         F_data : dataclass
             an instance of the FData dataclass containing all of the read count and supervariant information
-            needed to compute the cellular prevalence matrix F
+            needed to compute the mutation frequency matrix F
         F_t : ndarray
-            the cellular prevalence matrix (F) fit only to the nodes in the (partial) tree
+            the mutation frequency matrix (F) fit only to the nodes in the (partial) tree
         eta_t : ndarray
             the subpopulation frequency matrix (eta) fit only to the nodes in the (partial) tree
         branching_factor : int
-            the number of possible extensions of the branch to fit the cellular prevalence matrix for F and
+            the number of possible extensions of the branch to fit the mutation frequency matrix for F and
             score under a binomial likelihood
         generator : object
             a numpy default_rng object used for reproducible random sampling

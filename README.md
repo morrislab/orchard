@@ -132,17 +132,22 @@ example1_dir=$ORCH_DIR/examples/example1
 python3 $ORCH_DIR/metrics/neutree/convert_outputs.py $example1_dir/example1.orchard.npz $example1_dir/example1.neutree.npz
 
 # run phylogeny-aware clustering on our example data
-python3 bin/phylogeny_aware_clustering $example1_dir/example1.ssm $example1_dir/example1.params.json $example1_dir/example1.neutree.npz examples/example1/cluster
+python3 bin/pac $example1_dir/example1.ssm $example1_dir/example1.params.json $example1_dir/example1.neutree.npz examples/example1/cluster
 
 # use the generalized information criterion to select a clone tree
 python3 lib/cluster/generate_clonetree.py $example1_dir/example1.ssm $example1_dir/example1.params.json $example1_dir/cluster/clusters.npz $example1_dir/cluster/cluster.params.json $example1_dir/cluster/cluster.results.npz -p
 
 # visualize the best clone tree
-# the clone tree should have 9 nodes if Orchard was given the seed 123
+# the clone tree should have 6 nodes if Orchard was given the seed 123
 python bin/plot $example1_dir/cluster/cluster.results.npz $example1_dir/cluster/cluster.plot.html --ssm-fn $example1_dir/example1.ssm
 
 open $example1_dir/cluster/cluster.plot.html 
 ```
+
+Run Phylogeny-aware clustering on a directory, where each subdirectory contains an SSM file and parameter file
+```
+$ORCH_DIR/sh/run_pac.sh $ORCH_DIR/examples
+``` 
 
 Compare the trees output by Orchard to a simulated ground truth
 ```
@@ -367,9 +372,10 @@ from omicsdata.npz.archive import Archive
 example_npz_fn = "/path/to/example1.orchard.npz" 
 archive = Archive(example_npz_fn)
 parents = archive.get("struct") # get parents list from archive
+newick = archive.get("newick") # get list of newick strings from archive
 ```
 
-The archive output by Orchard contains `numpy` data types stored under specific keys values. The values for the keys `struct`, `count`, `phi`, `llh`, `prob` should be sorted lists of the same length, and they are sorted such that the same index in each of the lists corresponds to the data for a specific tree. The lists are sorted in descending order according to the log-likelihood of the tree, i.e., the data at index 0 corresponds to the data for the tree with the lowest log-likelihood (the best tree). Here, we describe the key/value pairs contained within the archive output by Orchard: 
+The archive output by Orchard contains `numpy` data types stored under specific keys values. The values for the keys `struct`, `count`, `phi`, `llh`, `prob`, `newick` should be sorted lists of the same length, and they are sorted such that the same index in each of the lists corresponds to the data for a specific tree. The lists are sorted in descending order according to the log-likelihood of the tree, i.e., the data at index 0 corresponds to the data for the tree with the lowest log-likelihood (the best tree). Here, we describe the key/value pairs contained within the archive output by Orchard: 
 
 * `struct`: a list of `parents` vectors sorted by the likelihood of their corresponding mutation frequency matrix under a binomial likelihood model.
 
@@ -380,6 +386,8 @@ The archive output by Orchard contains `numpy` data types stored under specific 
 * `llh`: a list of log-likelihoods, where each value is the log of the likelihood of the mutation frequency matrix in `phi` under a binomial likelihood model.
 
 * `prob`: a list containing the probability that the tree is the best of those that were found during search.
+
+* `newick`: a list containing the newick strings for each tree
 
 Phylogeny aware clustering
 ===========================
@@ -395,13 +403,33 @@ The *phylogeny-aware clustering* method is an agglomerative clustering algorithm
 
 The phylogeny-aware clustering algorithm joins pairs of nodes based on the distance between the mutation frequencies in each node. As a result, we can change the criterion for measuring the distance between each node (`-l`, `--linkage-criterion`), and we can change the actual distance metric that is used (`-m`, `--metric`).
 
-- The *linkage criterion*  (`-l`, `--linkage-criterion`) is used to select how the type of distance to compute between pairs of nodes (u,v). By default, the linkage criterion is the minimum distance between all pairs of mutations (i,j) (`-l=min_linkage`) where i is a mutation in node u, and j is a mutation in node v.
+- The *linkage criterion*  (`-l`, `--linkage-criterion`) is used to select how the type of distance to compute between pairs of nodes (u,v). By default, the linkage criterion is Ward's method (`-l=ward_linkage`).
 
-- The *distance metric* (`-m`, `--metric`) is used to compute the distance between all pairs of mutation (i,j). The default distance metric is the *euclidean distance* (`-m=euclidean`). Any metric that can be used with the [sklearn.metrics.pairwise_distances](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise_distances.html) function can be use.
+- The *distance metric* (`-m`, `--metric`) is used to compute the distance between all pairs of mutation (i,j). The default distance metric is the *Euclidean distance* (`-m=euclidean`). Ward's method can only use Euclidean distance. When the linkage criteria is `min_linkage` or `avg_linkage`, any pairwise distance metric can be used: [sklearn.metrics.pairwise_distances](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise_distances.html).
 
 **What are the outputs of the phylogeny-aware clustering algorithm?**
 
 The phylogeny-aware clustering algorithm outputs zipped archive using [omicsdata.npz.archive.Archive](https://omicsdata.readthedocs.io/en/latest/omicsdata.npz.html#omicsdata.npz.archive.Archive). This archive contains all of the clones trees of size *2,...,n+1* and their related data. By default, the name of the zipped archive will be *cluster.npz*.
+
+This output is intended to be passed into the `/lib/cluster/generate_clonetree.py` script.
+
+
+**Selecting a clone tree from the output of the phylogeny-aware clustering algorithm**
+
+A clone tree can be selected from the `npz` file output by the `bin/pac` program using the following command (assumes you're in the `/examples/example1` directory):
+
+```
+ python3 $ORCH_DIR/lib/cluster/generate_clonetree.py example1.ssm example1.params.json cluster/clusters.npz cluster/cluster.params.json cluster/cluster.results.npz
+```
+
+This script takes as input a `ssm` file, `params.json` file, and `clusters.npz` file. It output an `Archive`, `cluster.results.npz`,  that contains the data for a single clone tree. This output is the same format as Orchard's output. The `generate_clonetree.py` script by default uses the log likelihood for each clustering in `clusters.npz` to determine which clustering/clone tree to output to `cluster.results.npz`. It does so using model selection, either with the *Generalized Information Criteria* (GIC) or *Bayesian Information Criteria* (BIC).  Another option is to manually select the size of clone tree you'd like from the `cluster.npz` file. Please see the Orchard supplement for more information. Here are the most important parameters for this script:
+
+- The *model selection*  (`-m`, `--model-selection`) is for model selection. The options are `GIC` or `BIC` (default is `-m=GIC`).
+
+- The *number of clones*  (`-n`, `--num-clones`) is used to manually select the size of the clone tree you'd like output. This overrides the model selection input, and it only is used when a positive integer is passed as an argument (default is `-n=0`).
+
+- The *plot* flag (`-p`, `--plot`) is used to output information about the clone tree selected. Defaults is `False`.
+
 
 FAQ
 =======

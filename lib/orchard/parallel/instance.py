@@ -19,7 +19,6 @@ from constants import MAX_SEED, RANDOM_NODE_ORDER, DIVERSE_NODE_ORDER
 from Branch import Branch
 from actions_sampler import Actions_Sampler
 
-
 def run_instance(model_type, 
                  model_data, 
                  branch_subset, 
@@ -157,5 +156,5 @@ def run_parallel_instances(model_type,
                 except Empty:
                     pass
 
-
     return sorted(best_trees), branches_explored, branches_cut
+    

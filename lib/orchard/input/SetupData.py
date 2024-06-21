@@ -15,3 +15,4 @@ class SetupData:
     poolsize: np.int16 
     node_order: str
     seed: np.int32
+    rescale_depth: np.bool_

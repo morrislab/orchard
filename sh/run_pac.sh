@@ -32,7 +32,7 @@ if [ ! -z "$1" ]
 fi
 
 # set folder to store orchard results in
-orchard_dir_name=orchard_k1_f20
+orchard_dir_name=orchard
 
 if [ ! -z "$2" ]
   then
@@ -77,7 +77,7 @@ then
 fi
 
 ##############################
-# (2)Run clustering
+# (2) Run clustering
 ##############################
 for dir in $data_dir/* ; 
 do
@@ -92,13 +92,13 @@ do
       datapath=$dir/truth
     fi 
     
-    python3 $ORCH_DIR/bin/phylogeny_aware_clustering \
+    python3 $ORCH_DIR/bin/pac \
                         $datapath/$runid.ssm \
                         $datapath/$runid.params.json \
                         $orcharddir/$runid.neutree.npz \
-                        $orcharddir/cluster 
+                        $orcharddir/cluster
                         
-    python3 $ORCH_DIR/lib/cluster/generate_clonetree.py $datapath/$runid.ssm $datapath/$runid.params.json $orcharddir/cluster/clusters.npz $orcharddir/cluster/cluster.params.json $orcharddir/cluster/cluster.results.npz -p  
+    python3 $ORCH_DIR/lib/cluster/generate_clonetree.py $datapath/$runid.ssm $datapath/$runid.params.json $orcharddir/cluster/clusters.npz $orcharddir/cluster/cluster.params.json $orcharddir/cluster/cluster.results.npz
 
     python3 $ORCH_DIR/lib/cluster/params_to_clusters.py $orcharddir/cluster/cluster.params.json $orcharddir/clusters.csv
 

@@ -24,7 +24,6 @@
 #
 ###############################################################################################################
 
-
 ##################################
 # Process command line arguments #
 ##################################
@@ -69,12 +68,20 @@ if [ ! -z "$5" ]
     branching_factor=$5
 fi
 
+# flag to make the node order diverse
+diverse=""
+
+if [[ "$*" == *"diverse"* ]]
+then
+    diverse="-w=diverse"
+fi
+
 # flag to randomize the node order
 random=""
 
 if [[ "$*" == *"random"* ]]
 then
-    random="-r"
+    random="-w=random"
 fi
 
 # flag to tell orchard to run as beam search
@@ -106,6 +113,13 @@ then
     intruthdir=true
 fi
 
+# flag to tell orchard to rescale the read depth for each sample by the average
+rescale_depth=""
+if [[ "$*" == *"rescaledepth"* ]]
+then
+    rescale_depth="-r"
+fi
+
 ##############################
 # (1) Run Orchard
 ##############################
@@ -128,7 +142,7 @@ do
     paramsfn=$datapath/$runid.params.json
     resultsfn=$orcharddir/$runid.orchard.npz
     
-    time ( python3 $ORCH_DIR/bin/orchard $ssmfn $paramsfn $resultsfn -n $num_cores -f $branching_factor -k $beam_width $random $beam_search $ignorezeroprobs $monoprimary ) \
+    time ( python3 $ORCH_DIR/bin/orchard $ssmfn $paramsfn $resultsfn -n $num_cores -f $branching_factor -k $beam_width $random $diverse $beam_search $ignorezeroprobs $monoprimary $rescale_depth ) \
            2>> $orcharddir/$runid.orchard.out 
 
 done

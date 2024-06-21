@@ -47,7 +47,7 @@ class Branch:
         action_info : list
             a list that is used to keep track of the steps the lead to the current state of the partial solution
         """
-        self._parents = np.full(size, NO_RELATIONSHIP)
+        self._parents = np.full(size, NO_RELATIONSHIP, dtype=np.int32)
         self._score = 0
         self.__actions_sampler = actions_sampler
         self.__action_info = action_info
@@ -225,6 +225,16 @@ class Branch:
         """
         assert np.isscalar(score), "score must be a scalar value, type %s was provided" % type(score)
         self._score = score
+
+    def set_parents(self, parents):
+        """Setter for the parents vector
+        
+        Parameters
+        -----------
+        parents : ndarray
+            parents vector to copy
+        """
+        self._parents = parents.copy()
     
     def size(self):
         """Returns the size of the parents vector"""

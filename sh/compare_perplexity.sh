@@ -7,9 +7,6 @@
 #
 ###############################################################################################################
 
-# initialize variable for /path/to/pairtree/comparison directory 
-PT_CMP_DIR=$LIB_DIR/pairtree/comparison
-
 # initialize data directory
 data_dir=$DATA_DIR
 

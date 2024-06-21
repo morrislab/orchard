@@ -15,21 +15,21 @@ class BNBModel:
     
     Attributes
     ----------
-    __branch_tracker : object
+    _branch_tracker : object
         an instance of the BranchTracker class which is for debug purposes
-    __data_queue : object
+    _data_queue : object
         a python queue class or a class that inherits from the python queue class 
-    __generator : object
+    _generator : object
         a numpy default_rng object used for reproducible random sampling
-    __model_data : dataclass
+    _model_data : dataclass
         a dataclass containing the information for setting up the BNBModel
-    __phi_data : dataclass
+    _F_data : dataclass
         a dataclass containing the read count data for all supervariants
-    __progress_queue : object
+    _progress_queue : object
         a thread safe python queue 
     """
 
-    def __init__(self, init_branches, model_data, phi_data, generator, data_queue, progress_queue=None):
+    def __init__(self, init_branches, model_data, F_data, generator, data_queue, progress_queue=None):
         """Initializes member variables
         
         Parameters
@@ -38,7 +38,7 @@ class BNBModel:
             a list of Branch objects that can be used to provide a BNB class (or Orchard) with arbitrary starting branches
         model_data : dataclass
             a dataclass containing the information for setting up the BNBModel
-        phi_data : dataclass
+        F_data : dataclass
             a dataclass containing the read count data for all supervariants
         generator : object
             a numpy default_rng object used for reproducible random sampling
@@ -51,7 +51,7 @@ class BNBModel:
         self._data_queue = data_queue
         self._generator = generator
         self._model_data = model_data
-        self._phi_data = phi_data
+        self._F_data = F_data
         self._progress_queue = progress_queue
 
         self._best_trees = []

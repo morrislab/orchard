@@ -40,11 +40,12 @@ def F_llh(partial_parents, F_data, bool_mask):
     float
         the log-likelihood of the cellular prevalence matrix fit to the (partial) tree
     """
-    F, eta, F_llh = fit_F(partial_parents, 
+    F, eta, _F_llh = fit_F(partial_parents, 
                           F_data.V[bool_mask], 
                           F_data.N[bool_mask] - F_data.V[bool_mask],
-                          F_data.omega[bool_mask])
-    return F, eta, F_llh
+                          F_data.omega[bool_mask],
+                          F_data.W[bool_mask])
+    return F, eta, _F_llh
 
 def propose_branches(branch, F_data, branching_factor, generator):
     """Proposes a set of actions based on the current state of the tree 

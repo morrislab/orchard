@@ -1,0 +1,122 @@
+#############################################################################
+# phylogeny_aware_clustering
+#
+# A Python program for inferring clones/clone trees from a mutation tree
+############################################################################# 
+import argparse, os, sys  
+import numpy as np 
+from sklearn.metrics import pairwise_distances
+from omicsdata.tree.parents import compute_partial_parents
+from omicsdata.ssm import parse, supervariants
+from omicsdata.npz.archive import Archive
+from omicsdata.ssm.columns import PARAMS_Columns
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "lib", "cluster"))
+
+from pa_clustering import cluster
+from utils import load_inputs, dfs_find_lineages, CLUSTERS_KEY, LLH_KEY, PARENTS_KEY, F_KEY, SV_CLUSTERS_KEY, min_linkage, avg_linkage, ward_linkage, MIN_LINKAGE, AVG_LINKAGE, WARD_LINKAGE
+
+# dictionary of linkage criterion functions
+linkage_criterion = {MIN_LINKAGE:min_linkage, AVG_LINKAGE:avg_linkage, WARD_LINKAGE:ward_linkage}
+
+# CONSTANTS
+EUCLIDEAN = "euclidean"
+
+
+def main():
+
+    parser = argparse.ArgumentParser(
+        description="The 'phylogeny-aware' clustering algorithm",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("ssm_fn", type=str, help="Simple somatic mutation file (.ssm)")
+
+    parser.add_argument("params_fn", type=str, help="Parameters file (.params.json)")
+
+    parser.add_argument("input_fn", type=str, help="Either a omicsdata.npz.archive.Archive or a Neutree file containing tree structures")
+
+    parser.add_argument("output_dir", type=str, help="Output directory")
+
+    parser.add_argument("-i", "--tree-idx", type=int, default=0,
+                    help="Index of tree information in neutree file to use for clustering.")
+
+    parser.add_argument("-f", "--results-fn", type=str, default="clusters.npz",
+                    help="File name for the zipped archive (npz) that stores all of the data about the phylogeny-aware clustering.")
+    
+    parser.add_argument("-l", "--linkage-criterion", type=str, default=WARD_LINKAGE, 
+                        help="Agglomerative cluster linkage criterion", choices=list(linkage_criterion.keys()))
+
+    parser.add_argument("-m", "--metric", type=str, default=EUCLIDEAN, 
+                        help="Metric for computing pairwise distances between rows in the cellular prevalence (F) matrix")
+
+    parser.add_argument("-g", "--use-lineages", action="store_true", 
+                        help="Override to cluster on the tree simply using the lineages as clusters")
+                             
+    args = parser.parse_args()
+
+    # make sure we can write to the output directory
+    if not os.path.isdir(args.output_dir):
+        os.mkdir(args.output_dir)
+
+    # extract data from input files
+    variants = parse.load_ssm(args.ssm_fn)    
+    params = parse.load_params(args.params_fn)
+
+    structs, Fs, llhs = load_inputs(args.input_fn)
+    assert args.tree_idx < len(structs), "File contains %d trees, but a tree_idx of %d was provided" % (len(structs), args.tree_idx)
+
+    parents, F = structs[args.tree_idx], Fs[args.tree_idx][1:] # take off first row which should be all 1.0's
+    supervars = supervariants.clusters_to_supervars(params[PARAMS_Columns.CLUSTERS], variants)
+    superclusters = supervariants.make_superclusters(supervars)
+    cluster_ids = [sv[0] for sv in superclusters]
+
+    # initialize results data dictionary
+    results_data = {PARENTS_KEY:[], LLH_KEY:[], CLUSTERS_KEY:[]}
+
+
+    if args.use_lineages:
+        clusters_, parents_ = dfs_find_lineages(parents)
+        results_data[PARENTS_KEY] = [parents_]
+        results_data[LLH_KEY] = [0]    
+        results_data[CLUSTERS_KEY] = [clusters_]    
+        results_data[SV_CLUSTERS_KEY] = [clusters_] 
+        results_data[F_KEY] = F
+
+    else:
+
+        # ensure metric is euclidean if we're using ward linkage
+        if args.linkage_criterion == WARD_LINKAGE:
+            assert args.metric == EUCLIDEAN, "Ward linkage requires the distance metric to be euclidean"
+    
+        # compute pairwise distance matrix for rows in the F matrix
+        if args.linkage_criterion == WARD_LINKAGE:
+            pd_matrix = None
+        else:
+            pd_matrix = pairwise_distances(F, metric=args.metric)
+
+
+        # run phylogeny-aware clustering
+        llhs_, clusterings_, sv_clusterings_, parents_ = cluster(supervars, 
+                                                                 parents.copy(),
+                                                                 F,
+                                                                 pd_matrix, 
+                                                                 cluster_ids,
+                                                                 params[PARAMS_Columns.CLUSTERS],
+                                                                 linkage_func=linkage_criterion[args.linkage_criterion])
+
+        # place results in dictionary
+        results_data[PARENTS_KEY] = [compute_partial_parents(p).tolist() for p in parents_]
+        results_data[LLH_KEY] = llhs_    
+        results_data[CLUSTERS_KEY] = [[np.array(c).tolist() for c in clusters if len(c) != 0] for clusters in clusterings_]    
+        results_data[SV_CLUSTERS_KEY] = [[np.array(c).tolist() for c in clusters if len(c) != 0] for clusters in sv_clusterings_] 
+        results_data[F_KEY] = F
+
+    # save zipped archive of results
+    results_archive = Archive(os.path.join(args.output_dir, args.results_fn))
+    for k,v in results_data.items():
+        results_archive.add(k, v)
+
+    results_archive.save()
+
+if __name__ == '__main__':
+    main()

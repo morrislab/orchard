@@ -10,13 +10,16 @@ import argparse, json
 from omicsdata.ssm import parse, supervariants
 from omicsdata.npz.archive import Archive
 from scipy.special import softmax
+from itertools import chain
+import seaborn as sns 
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', "orchard")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', "orchard", "projection")))
 
-from utils import LLH_KEY, CLUSTERS_KEY, PARENTS_KEY, GIC, model_selection_choices, select_clustering
+from utils import LLH_KEY, CLUSTERS_KEY, SV_CLUSTERS_KEY, PARENTS_KEY, F_KEY, BIC, GIC, model_selection_choices, select_clustering
 from projection import fit_F
-from constants import KEYS_PARAMS, KEYS_ORCH_NPZ
+from constants import KEYS_PARAMS, KEYS_ORCH_NPZ, MIN_VARIANCE
 
 def main():
     parser = argparse.ArgumentParser(
@@ -34,7 +37,7 @@ def main():
 
     parser.add_argument("results_fn", type=str, help="Zipped archive for a particular tree")
 
-    parser.add_argument("-m", "--model-selection", type=str, default=GIC, choices=list(model_selection_choices.keys()),
+    parser.add_argument("-m", "--model-selection", type=str, default=BIC, choices=list(model_selection_choices.keys()),
                         help="Allows for user to pick the model selection criterion. This is only used if --num-clones is less than \
                             or equal to zero.")
 
@@ -50,31 +53,55 @@ def main():
     # extract ssm/params daata
     variants = parse.load_ssm(args.ssm_fn)
     params = parse.load_params(args.params_fn)
-    n = len(list(variants.keys()))
-    m = len(params[KEYS_PARAMS.samples_key])
+    original_clusters = params[KEYS_PARAMS.clusters_key]
 
     # extract data from cluster archive
     results = Archive(args.cluster_npz)
-    clusterings = results.get(CLUSTERS_KEY)
+    sv_clusterings = results.get(SV_CLUSTERS_KEY)
     all_parents = results.get(PARENTS_KEY)
+    clusterings = results.get(CLUSTERS_KEY)
     llhs = results.get(LLH_KEY)
+    F = results.get(F_KEY)
+
+    n = len(variants)
+    m = len(params[KEYS_PARAMS.samples_key])
 
     # get index of clone tree to use
     if args.num_clones > 0:
-        index = len(all_parents) - args.num_clones 
+        clones_in_clusters = [len(cl) for cl in clusterings] 
+        if args.num_clones in clones_in_clusters:
+            index = clones_in_clusters.index(args.num_clones)
+        else:
+            print("No tree exists with %d clusters, Aborting!" % args.num_clones)
+            return
     else:
-        index = select_clustering(clusterings, llhs, args.model_selection, n, m, args.plot)
+        index = select_clustering(sv_clusterings, llhs, args.model_selection, n, m, args.plot)
     parents = np.array(all_parents[index])
-    clusters = clusterings[index]
+    sv_clusters = sv_clusterings[index]
+    clusters = [list(chain.from_iterable([original_clusters[int(sid[1:])-1] for sid in c])) for c in sv_clusters]
 
     # overwrite clusters in inputted file, and save as new params file
     params[KEYS_PARAMS.clusters_key] = clusters
-    with open(args.cluster_params, 'w') as F:
-        json.dump(params, F)
+    with open(args.cluster_params, 'w') as f:
+        json.dump(params, f)
 
-    # extract read count data
-    supervars = supervariants.clusters_to_supervars(clusters, variants)
-    V, R, omega_v = supervariants.supervars_to_binom_params(supervars)
+    # heatmap plots to give idea about cluster fit
+    if args.plot:
+
+        # extract read count data for original clusters
+        supervars = supervariants.clusters_to_supervars(original_clusters, variants)
+        V, R, omega_v = supervariants.supervars_to_binom_params(supervars)
+        V_hat = V + 1
+        T_hat = V + R + 2
+
+        vafs = V_hat/T_hat
+        tree_vafs = omega_v*F
+        ax = sns.heatmap(np.abs(vafs - tree_vafs), cmap="viridis", cbar_kws={'label': 'VAF'})
+        ax.tick_params(bottom=False, left=False)
+        ax.set(xticklabels=[], yticklabels=[])
+        plt.xlabel('Samples')
+        plt.suptitle("Absolute difference between mutation VAFs when clustered \n and data-implied mutation VAFs")
+        plt.show()
 
     # mimic the .npz outputs from pairtree
     npz_data = {
@@ -94,11 +121,22 @@ def main():
         KEYS_ORCH_NPZ.clustrel_posterior_rels: []
     }
 
+    # extract read count data
+    supervars = supervariants.clusters_to_supervars(clusters, variants)
+    V, R, omega_v = supervariants.supervars_to_binom_params(supervars)
+
+    # compute W for projection
+    V_hat = V + 1
+    T_hat = V + R + 2
+    W = V_hat*(1 - V_hat/T_hat) / (T_hat*omega_v)**2
+    W = np.maximum(MIN_VARIANCE, W)
+
     # fit the cellular prevalence matrix for the selected clone tree
     phi, eta, phi_llh = fit_F(parents, 
                                     V, 
                                     R,
-                                    omega_v)
+                                    omega_v,
+                                    W)
 
     npz_data[KEYS_ORCH_NPZ.llh_key].append(np.sum(phi_llh))
     npz_data[KEYS_ORCH_NPZ.F_key].append(phi)

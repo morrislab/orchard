@@ -25,6 +25,7 @@ class KEYS_ORCH_NPZ:
   seed: str = "seed"
   struct_key: str = "struct"
   clusters_key: str = "clusters"
+  newick_key: str = "newick"
 
   # just for compatibility with pairtree  
   clustrel_posterior_rels: str = "clustrel_posterior_rels"
@@ -54,7 +55,7 @@ class KEYS_SSM:
 MAX_SEED = 2**32 - 1
 NO_RELATIONSHIP = -1
 MISSING_REL_PROB = 1e-14
-
+MIN_VARIANCE = 1e-4
 
 ##############################
 # Initialization schemes

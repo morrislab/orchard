@@ -22,17 +22,24 @@ from omicsdata.tree.parents import parents_to_adj
 from omicsdata.tree.adj import adj_to_anc
 from omicsdata.npz.archive import Archive
 from omicsdata.ssm.parse import load_params
+from omicsdata.ssm.columns import PARAMS_Columns
+from omicsdata.ssm.constants import Variants_Keys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "orchard"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "metrics"))
 
-from constants import KEYS_ORCH_NPZ, KEYS_PARAMS
+from constants import KEYS_ORCH_NPZ
 import neutree 
 
 # CONSTANTS
-color_palette =  ["#E53939", "#E2E539", "#45E539", "#39E5CA", "#3986E5", 
-                  "#9039E5", "#E539A1", "#B45555", "#9FB455", "#60B455", 
-                  "#55B3B4", "#5568B4", "#B455A8"] 
+color_palette =  ["#1e90ff", "#ff4500", "#8a2be2", "#ffd700", "#32cd32", 
+                  "#ff1493", "#4169e1", "#ff8c00", "#8b008b", "#00fa9a",
+                  "#ffd1dc", "#87cefa", "#ffd700", "#c71585", "#add8e6",
+                  "#2e8b57", "#4b0082", "#8b4513", "#b03060", "#e34234",
+                  "#541e1b", "#4a646c", "#3e4095", "#7d1935", "#431c53",
+                  "#7d8b5c", "#d2983c", "#bd7232", "#847152", "#9f5757",
+                  "#e37878", "#e5966f", "#e6cd56", "#90ca5e", "#1ac0c2",
+                  "#f0e6db", "#bcbcbc", "#073763", "#3d85c6", "#eeeeee"]
 
 img_html_style = 'style="width:100%"'
 tree_html_header = '<h1 style="text-align:center">Tree</h1>'
@@ -114,7 +121,7 @@ def load_npz_data(input_fn, params_fn):
             structs = ntree.structs
             Fs = ntree.phis
             clusters = ntree.clusterings[0] # assume all clusterings are the same
-            samples = params[KEYS_PARAMS.samples_key]
+            samples = params[PARAMS_Columns.SAMPLES]
             llhs = ntree.logscores
         except Exception as e:
             exceptions.append(e)
@@ -192,7 +199,7 @@ def CP_fig(F, samples, clusters, F_hat=None, color_palette=color_palette):
             colors.append(color_palette[i%len(color_palette)])
             colors.append("black")
         ylabels = ["data", "tree", "error"]*N
-        plot_title="Interleaved cellular prevalence \n(Total Error = %.2f)" % np.abs(F-F_hat).sum()
+        plot_title="Interleaved cellular prevalence \n(Total Error = %.3f)" % np.abs(F-F_hat).sum()
 
     else: # otherwise, we'll just show the tree-constrained cellular prevalence
         height = N
@@ -319,7 +326,7 @@ def SP_fig(parents, F, samples, color_palette=color_palette, width=0.9):
     #fig.tight_layout()
     return fig
 
-def draw_tree(adj, clusters):
+def draw_tree(adj, variants, clusters):
     """
     Uses Pyvis to a draw a tree and return its html
 
@@ -341,7 +348,7 @@ def draw_tree(adj, clusters):
     net.add_node(0, label="0", font='30px arial black', title="root")
 
     for i in range(1,adj.shape[0]):
-        i_title = str(",".join(clusters[i-1]))
+        i_title = str(",".join([variants[vid][Variants_Keys.NAME] for vid in clusters[i-1]]))
         net.add_node(i, label=str(i), font='30px arial black', title=i_title)
 
     # use the adjacency matrix to determine which nodes have edges between them

@@ -270,7 +270,7 @@ Run times generally should not be an issue. If the data has closer to 100 clones
 
 **DO**
 
-- Use beam widths up to 20 (*k <= 20*), branching factors up to 100 (-f <= 100*), multiple parallel search instances 
+- Use beam widths up to 20 (*k <= 20*), branching factors up to 100 (*f <= 100*), multiple parallel search instances 
 - Consider using a *diverse search* (*-w=diverse*), *breadth first search* should only be used for relatively small choices of *k* (set *-e=k* where *k* is the beam width)
 
 **DO NOT**
@@ -290,7 +290,7 @@ Run times can become quite large, especially with beam widths greater than 10 (*
 
 **DO**
 
-- Use beam widths up to 10 (*k <= 10*), branching factors up to 100 (-f <= 100*), multiple parallel search instances 
+- Use beam widths up to 10 (*k <= 10*), branching factors up to 100 (*f <= 100*), multiple parallel search instances 
 - Consider using a *diverse search* (*-w=diverse*), *breadth first search* should only be used for relatively small choices of *k* (set *-e=k* where *k* is the beam width)
 - Consider limiting the search by ignoring low probability placements  by adding the flag `-z`
 

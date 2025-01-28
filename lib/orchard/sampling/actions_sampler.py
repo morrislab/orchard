@@ -243,7 +243,7 @@ class Actions_Sampler:
         self.__force_monoprimary = force_monoprimary
 
     def _compute_F_sum(self, F_data):
-        """Computes the \widehat{F} sum node weights
+        """Computes the F-sum node weights
         
         Parameters
         ----------
@@ -257,14 +257,14 @@ class Actions_Sampler:
             self.__node_weights.append(np.sum(u_F_hat))
 
     def _sample_node_order(self, generator, randomize=False):
-        """Samples a node order -- either a randomized node order or a \widehat{F} sum node order
+        """Samples a node order -- either a randomized node order or a F-sum node order
         
         Parameters
         ----------
         generator : object
             a numpy default_rng object used for reproducible random sampling
         randomized : bool, optional
-            a flag where if True a randomized node order is generated, and otherwise the \widehat{F} sum node order is generated
+            a flag where if True a randomized node order is generated, and otherwise the F-sum node order is generated
         """
         if randomize:
             node_order = list(range(1,self.__num_nodes+1))

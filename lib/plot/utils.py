@@ -16,6 +16,7 @@ import matplotlib.transforms as transforms
 from matplotlib.lines import Line2D
 import matplotlib.ticker as mtick
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import matplotlib.colors as mcolors
 
 # omics data imports
 from omicsdata.tree.parents import parents_to_adj
@@ -32,14 +33,7 @@ from constants import KEYS_ORCH_NPZ
 import neutree 
 
 # CONSTANTS
-color_palette =  ["#1e90ff", "#ff4500", "#8a2be2", "#ffd700", "#32cd32", 
-                  "#ff1493", "#4169e1", "#ff8c00", "#8b008b", "#00fa9a",
-                  "#ffd1dc", "#87cefa", "#ffd700", "#c71585", "#add8e6",
-                  "#2e8b57", "#4b0082", "#8b4513", "#b03060", "#e34234",
-                  "#541e1b", "#4a646c", "#3e4095", "#7d1935", "#431c53",
-                  "#7d8b5c", "#d2983c", "#bd7232", "#847152", "#9f5757",
-                  "#e37878", "#e5966f", "#e6cd56", "#90ca5e", "#1ac0c2",
-                  "#f0e6db", "#bcbcbc", "#073763", "#3d85c6", "#eeeeee"]
+color_palette =  list(mcolors.TABLEAU_COLORS)
 
 img_html_style = 'style="width:100%"'
 tree_html_header = '<h1 style="text-align:center">Tree</h1>'
@@ -133,7 +127,7 @@ def load_npz_data(input_fn, params_fn):
     return structs, Fs, clusters, samples, llhs
 
 def calc_subpopfreq(parents, F):
-    """Caculates the subpopulation frequency (\eta) of each clone in each sample
+    """Caculates the subpopulation frequency (eta) of each clone in each sample
     
     Parameters
     -----------
@@ -228,12 +222,12 @@ def CP_fig(F, samples, clusters, F_hat=None, color_palette=color_palette):
         if i == 0:
             ax.set_title(plot_title, pad=20, wrap=True)
         if i < height - 1:
-            ax.set_xticks("")
+            ax.set_xticks([])
         else: 
             ax.tick_params(axis='x', labelrotation = 90)
 
         for p in ax.patches:
-            ax.annotate("%.1f%%" % p.get_height(), (p.get_x() + 0.2, p.get_height()+3))
+            ax.annotate("%.1f%%" % p.get_height(), xy=(p.get_x() + 0.2, p.get_height()+3), annotation_clip=True)
 
 
     # add cluster members subplots
@@ -316,14 +310,16 @@ def SP_fig(parents, F, samples, color_palette=color_palette, width=0.9):
     # annotate the bar plot with its subpopulation frequency if it's large enough to fit
     for p in ax.patches:
         width, height = p.get_width(), p.get_height()
+        fontsize = 12*width*0.75
         x, y = p.get_xy() 
-        if height > 8:
+        if height > 8 and fontsize > 0:
             ax.text(x+width/2, 
                     y+height/2, 
                     "%.1f%%" % height, 
                     horizontalalignment='center', 
-                    verticalalignment='center')
-    #fig.tight_layout()
+                    verticalalignment='center',
+                    fontsize=fontsize)
+
     return fig
 
 def draw_tree(adj, variants, clusters):

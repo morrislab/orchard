@@ -133,7 +133,7 @@ def min_linkage(pairs_dict, variants, c1, c2):
     Returns
     --------
     float
-        the minimum distance between a pair of mutations i \in c1, j \in c2 
+        the minimum distance between a pair of mutations i in c1, j in c2 
     """
     return np.min([pairs_dict.get(v1,v2) for v1 in c1 for v2 in c2]) 
 
@@ -155,7 +155,7 @@ def avg_linkage(pairs_dict, variants, c1, c2):
     Returns
     --------
     float
-        the average unweighted distance all pairs of mutations (i,j) where i \in c1, j \in c2 
+        the average unweighted distance all pairs of mutations (i,j) where i in c1, j in c2 
     """
     return np.sum([pairs_dict.get(v1,v2) for v1 in c1 for v2 in c2]) / (len(c1)*len(c2))
 
